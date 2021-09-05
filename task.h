@@ -1,4 +1,4 @@
-//    This file is part of Telos v0.9.1
+//    This file is part of Telos
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -180,7 +180,6 @@ public:
 
     // RemoveTaskFromList()
     // Removes task from the list, matched by either name or pointer
-    void  RemoveTaskFromList(QString);
     void  RemoveTaskFromList(Task*);
     void  RemoveTasksFromList(std::vector<Task*>);
 
@@ -190,6 +189,7 @@ protected:
     QString                            name_;
     std::vector<std::unique_ptr<Task>> list_;  // Shared pointers for copying/searching qt objects
 
+    void DisconnectPrereqDepend(Task*);
 };
 
 #endif // TASK_H

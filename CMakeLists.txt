@@ -1,3 +1,22 @@
+#    This file is part of Telos
+#    Copyright (c) 2021, Cynical Tech Humor LLC
+
+#    Telos is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    Telos is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with Telos.  If not, see <https://www.gnu.org/licenses/>.
+
+#    Source code is available at:
+#    <https://github.com/CynicalTechHumor/Telos>
+
 cmake_minimum_required(VERSION 3.5)
 
 project(Telos VERSION 0.1 LANGUAGES CXX)
@@ -41,7 +60,7 @@ set(PROJECT_SOURCES
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(Telos
+    qt_add_executable(Telos WIN32
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )

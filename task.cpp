@@ -1,4 +1,4 @@
-//    This file is part of Telos v0.9.1
+//    This file is part of Telos
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -247,15 +247,9 @@ Task* TaskList::AddTaskToList(QString   i_name,
     return list_.back().get();
 }
 
-void TaskList::RemoveTaskFromList(QString i_name)
-{
-    Task* i_ptr = GetPtrFromTaskList(i_name);
-    Task::PtrUniqueVectorIterate i = std::find_if(list_.begin(), list_.end(), [i_ptr](Task::PtrUnique& e) {return e.get() == i_ptr;});
-    if (i != list_.end()) list_.erase(i);
-}
-
 void TaskList::RemoveTaskFromList(Task* i_ptr)
 {
+    DisconnectPrereqDepend(i_ptr);
     Task::PtrUniqueVectorIterate i = std::find_if(list_.begin(), list_.end(), [i_ptr](Task::PtrUnique& e) {return e.get() == i_ptr;});
     if (i != list_.end()) list_.erase(i);
 }
@@ -264,4 +258,14 @@ void TaskList::RemoveTasksFromList(Task::PtrVector i_list)
 {
     for (Task* i : i_list)
         RemoveTaskFromList(i);
+}
+
+void TaskList::DisconnectPrereqDepend(Task *i_ptr)
+{
+    Task::PtrVector prereqs = i_ptr->GetTaskPrereq(),
+                    depends = i_ptr->GetTaskDepend();
+    for (Task::PtrVectorIterate i=prereqs.begin(); i!=prereqs.end(); ++i)
+            (*i)->RemoveTaskDepend(i_ptr);
+    for (Task::PtrVectorIterate i=depends.begin(); i!=depends.end(); ++i)
+            (*i)->RemoveTaskPrereq(i_ptr);
 }

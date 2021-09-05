@@ -1,5 +1,5 @@
 <br>
-<b><u>Telos v0.9.1</u></b><br>
+<b><u>Telos v0.9.2</u></b><br>
 <br>
 A simple open-source app for managing to-do lists.<br>
 Copyright (c) 2021, Cynical Tech Humor LLC, GPLv3<br>
@@ -10,7 +10,7 @@ This program is licensed under the GNU General Purpose License ver. 3 (GPLv3)<br
 Source code, resource files, and license information are available here:<br>
 <a href='https://github.com/CynicalTechHumor/Telos'><font color="#00ffff">https://github.com/CynicalTechHumor/Telos</font></a><br>
 <br>
-This program utilizes the Qt framework under the GPLv3 license model.<br>
+This program utilizes the Qt framework (v6.1.2) under the GPLv3 license model.<br>
 Learn more about Qt here:<br>
 <a href='https://www.qt.io/'><font color="#00ffff">https://www.qt.io/</font></a><br>
 <br>

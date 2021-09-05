@@ -1,4 +1,4 @@
-//    This file is part of Telos v0.9.1
+//    This file is part of Telos
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -36,12 +36,12 @@ MainWindow::MainWindow(QWidget *parent)
     prereq_combo_box_         = std::make_unique<QStringListModel>();
     depend_combo_box_         = std::make_unique<QStringListModel>();
     list_changed_             = false;
-    task_list_dir_            = QDir(QCoreApplication::applicationDirPath());
+    task_list_dir_            = QDir(QDir::homePath());
     debug_mode_               = false;
 
     // Make a task list directory if one doesn't exist, and sets filters/sorting
-    task_list_dir_.mkdir          ("task_lists");
-    task_list_dir_.cd             ("task_lists");
+    task_list_dir_.mkdir          ("Telos");
+    task_list_dir_.cd             ("Telos");
     task_list_dir_.setFilter      (QDir::Files | QDir::Readable | QDir::Writable);
     task_list_dir_.setSorting     (QDir::Name);
     task_list_dir_.setNameFilters (QStringList("*.dat"));
@@ -1022,6 +1022,7 @@ void MainWindow::on_actionTelos_triggered()
 
 void MainWindow::on_actionClearCompleted_triggered()
 {
+    if (!active_task_list_) return;
     PromptSaveTask();
     PromptSaveTaskList();
     QMessageBox::StandardButton reply = QMessageBox::question(this,
@@ -1030,4 +1031,5 @@ void MainWindow::on_actionClearCompleted_triggered()
                                                               QMessageBox::Save|QMessageBox::Discard);
     if (reply == QMessageBox::Save) SaveTaskListToFile(active_task_list_, TaskListSave::kCompleted);
     active_task_list_->RemoveTasksFromList(active_task_list_->GetAllCompleted());
+    UpdateDisplayActiveTaskList();
 }
