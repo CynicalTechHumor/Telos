@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -27,6 +27,12 @@
 class Task
 {
 public:
+
+    typedef std::unique_ptr<Task>                        PtrUnique;
+    typedef std::vector<Task*>                           PtrVector;
+    typedef std::vector<Task*>::iterator                 PtrVectorIterate;
+    typedef std::vector<std::unique_ptr<Task>>           PtrUniqueVector;
+    typedef std::vector<std::unique_ptr<Task>>::iterator PtrUniqueVectorIterate;
 
     // *************************
     // Constructors & Destructor
@@ -73,13 +79,10 @@ public:
     // ******
 
     // GetTaskNames()
-    // Returns a string list of the names of all tasks in the input vector
+    // Input:   Vector of task pointers.
+    // Returns: String list containing names of all tasks within input vector; empty list if input vector is empty.
+    // Assumes: All pointers are valid; All task names are valid.
     static QStringList GetTaskNames (std::vector<Task*>);
-
-    // GetPtrIndex()
-    // Returns the index of the input pointers location in the input vector
-    // Returns -1 if the input pointer does not appear in the input vector
-    static int GetPtrIndex(Task*, std::vector<Task*>);
 
     // SubtractTaskNames() - static
     // Remove strings from list 1 that match any string in list 2
@@ -107,6 +110,12 @@ class TaskList
 
 public:
 
+    typedef std::unique_ptr<TaskList>                        PtrUnique;
+    typedef std::vector<TaskList*>                           PtrVector;
+    typedef std::vector<TaskList*>::iterator                 PtrVectorIterate;
+    typedef std::vector<std::unique_ptr<TaskList>>           PtrUniqueVector;
+    typedef std::vector<std::unique_ptr<TaskList>>::iterator PtrUniqueVectorIterate;
+
     // *************************
     // Constructors & Destructor
     // *************************
@@ -124,19 +133,14 @@ public:
     bool    IsTaskListEmpty (void)  { return list_.empty();  }
     Task*   operator[]      (int i) { return list_[i].get(); }
 
-    // GetAllTaskPtrsFromList()
-    // Get a vector of pointers to all Tasks currently in the list
-    std::vector<Task*> GetAllTaskPtrsFromList(void);
+    // GetAllTaskPtrsFromList(), GetAllTaskNamesFromList()
+    // Get a vector of pointers, or a string list of the names for all Tasks currently in the list
+    std::vector<Task*> GetAllTaskPtrsFromList  (void);
+    QStringList        GetAllTaskNamesFromList (void);
 
-    // GetAllTaskNamesFromList()
-    // Get a string list of the names of all Tasks currently in the list
-    QStringList GetAllTaskNamesFromList(void);
-
-    // GetIndexFromTaskList()
-    // Return the vector index of a specific task, identified by either pointer or name
-    // Return -1 if the task is not in the list
-    int GetIndexFromTaskList(QString);
-    int GetIndexFromTaskList(Task*);
+    // GetAllCompleted()
+    // Get a vector of pointers for completed tasks only
+    std::vector<Task*> GetAllCompleted         (void);
 
     // GetPtrFromTaskList(), GetPtrsFromTaskList
     // Return pointer (or a vector of pointers) to the task(s) identified by name
@@ -153,8 +157,9 @@ public:
     // GetChainedPrereq(), GetChainedDepend()
     // Get all prerequisites/dependents for a given task in list, including all others in the chain
     // i.e. prerequisites of prerequisites, dependents of dependents
-    void GetChainedPrereq(QStringList*, QString);
-    void GetChainedDepend(QStringList*, QString);
+    void GetChainedPrereq (QStringList*, QString);
+    void GetChainedDepend (QStringList*, QString);
+    void GetCompleted     (QStringList*);
 
     // ********
     // Mutators
@@ -177,16 +182,13 @@ public:
     // Removes task from the list, matched by either name or pointer
     void  RemoveTaskFromList(QString);
     void  RemoveTaskFromList(Task*);
+    void  RemoveTasksFromList(std::vector<Task*>);
 
 protected:
 
     // Data
     QString                            name_;
-    std::vector<std::unique_ptr<Task>> list_;
-
-    // RemoveIndexFromList()
-    // Removing a task from the list by index position in vector
-    void RemoveIndexFromList(int index);
+    std::vector<std::unique_ptr<Task>> list_;  // Shared pointers for copying/searching qt objects
 
 };
 

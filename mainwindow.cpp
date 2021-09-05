@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -27,28 +27,28 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // Initialize data fields
-    active_task_list_            = nullptr;
-    active_task_                 = nullptr;
-    active_task_saved_prereq_    = std::vector<Task*>();
-    active_filter_               = TaskFilter::kCurrent;
-    active_sort_                 = TaskSort::kName;
-    drag_position_               = QPoint();
-    prereq_combo_box_            = std::make_unique<QStringListModel>();
-    depend_combo_box_            = std::make_unique<QStringListModel>();
-    list_changed_                = false;
-    task_list_dir_               = QDir(QCoreApplication::applicationDirPath());
-    debug_mode_                  = false;
+    active_task_list_         = nullptr;
+    active_task_              = nullptr;
+    active_task_saved_prereq_ = Task::PtrVector();
+    active_filter_            = TaskFilter::kCurrent;
+    active_sort_              = TaskSort::kName;
+    drag_position_            = QPoint();
+    prereq_combo_box_         = std::make_unique<QStringListModel>();
+    depend_combo_box_         = std::make_unique<QStringListModel>();
+    list_changed_             = false;
+    task_list_dir_            = QDir(QCoreApplication::applicationDirPath());
+    debug_mode_               = false;
 
     // Make a task list directory if one doesn't exist, and sets filters/sorting
-    task_list_dir_.mkdir("task_lists");
-    task_list_dir_.cd("task_lists");
-    task_list_dir_.setFilter(QDir::Files | QDir::Readable | QDir::Writable);
-    task_list_dir_.setSorting(QDir::Name);
-    task_list_dir_.setNameFilters(QStringList("*.dat"));
+    task_list_dir_.mkdir          ("task_lists");
+    task_list_dir_.cd             ("task_lists");
+    task_list_dir_.setFilter      (QDir::Files | QDir::Readable | QDir::Writable);
+    task_list_dir_.setSorting     (QDir::Name);
+    task_list_dir_.setNameFilters (QStringList("*.dat"));
 
     // Sets combo boxes to be edited by the QStringListModels
     ui->comboPrerequisites->setModel(prereq_combo_box_.get());
-    ui->comboDependencies->setModel(depend_combo_box_.get());
+    ui->comboDependencies-> setModel(depend_combo_box_.get());
 
     // Load all task lists found in default directory
     QStringList task_list_names = task_list_dir_.entryList();
@@ -59,15 +59,15 @@ MainWindow::MainWindow(QWidget *parent)
     UpdateDisplayOpenTaskLists();
 
     // Initialize remaining fields (those not affected by UpdateDisplayOpenTaskLists())
-    ui->lwOpenTaskLists->setVisible(true);
-    ui->teStatusBar->setEnabled(false);
+    ui->lwOpenTaskLists->setVisible(true );
+    ui->teStatusBar->    setEnabled(false);
 
     // Hide the ugly Windows bar, and allow repositioning by dragging the menu bar
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     ui->menubar->installEventFilter(this);
 
     // Connect status signal
-    connect(this, &MainWindow::SignalStatusBarUpdate, this, &MainWindow::SlotStatusBarUpdate);
+    connect(this, &MainWindow::SignalStatus, this, &MainWindow::SlotStatus);
 }
 
 MainWindow::~MainWindow()
@@ -95,21 +95,28 @@ void MainWindow::SelectPrereqToChange(TaskSelection i_select)
     if (!active_task_)      throw std::logic_error("ChangedPrereq failed: no active task");
     if (!active_task_list_) throw std::logic_error("ChangedPrereq failed: no active task list");
 
-    // If adding prerequisite(s), get all tasks, then subtract currently chained prerequisite/dependent tasks
+    // If adding prerequisite(s)...
     QStringList eligible;
     if(i_select == TaskSelection::kAddPrerequisite)
     {
         QStringList prereq = prereq_combo_box_->stringList(),
-                    prereq_of_prereq,
-                    dependencies;
+                    prereq_chain,
+                    depend_chain,
+                    completed;
+
+        // ...get prerequisite chain, dependent chain, and completed tasks...
         for (int i=0; i<prereq.size(); ++i)
-            active_task_list_->GetChainedPrereq(&prereq_of_prereq, prereq[i]);
-        active_task_list_->GetChainedDepend(&dependencies, active_task_->GetTaskName());
+            active_task_list_->GetChainedPrereq(&prereq_chain, prereq[i]);
+        active_task_list_->GetChainedDepend(&depend_chain, active_task_->GetTaskName());
+        active_task_list_->GetCompleted    (&completed);
+
+        // ...then remove them from the list of all tasks to leave only eligible ones
         eligible = active_task_list_->GetAllTaskNamesFromList();
-        eligible = Task::SubtractTaskNames(eligible, prereq_of_prereq);
-        eligible = Task::SubtractTaskNames(eligible, dependencies);
+        eligible = Task::SubtractTaskNames(eligible, prereq_chain);
+        eligible = Task::SubtractTaskNames(eligible, depend_chain);
+        eligible = Task::SubtractTaskNames(eligible, completed);
     }
-    // If removing prerequisite(s), get current prerequisites without chain
+    // If removing prerequisite(s), get current unchained prerequisites
     else if (i_select == TaskSelection::kRemovePrerequisite)
         eligible = prereq_combo_box_->stringList();
 
@@ -152,7 +159,7 @@ void MainWindow::ChangePrereq(QStringList i_list, TaskSelection i_select)
 
     // Enable save if there were changes to prerequisites
     if(!i_list.empty()) ui->pbSaveChanges->setEnabled(true);
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
 }
 
 void MainWindow::SaveActiveTask(void)
@@ -195,7 +202,7 @@ void MainWindow::SaveActiveTask(void)
     active_task_->SetTaskPrereq(active_task_list_->GetPtrsFromTaskList(current_prereq));
     list_changed_ = true;
     QString status = "Saved changes to task \"" + active_task_->GetTaskName() + "\".";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
 }
 
 void MainWindow::CreateTask(void)
@@ -213,7 +220,7 @@ void MainWindow::CreateTask(void)
     active_task_ = active_task_list_->AddTaskToList(unique_task_name + QString::number(i));
     list_changed_ = true;
     QString status = "Created new task \"" + active_task_->GetTaskName() + "\".";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
 }
 
 void MainWindow::RemoveTask(void)
@@ -231,7 +238,7 @@ void MainWindow::RemoveTask(void)
     list_changed_ = true;
 
     QString status = "Removed task \"" + task_name + "\" from list.";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
 }
 
 void MainWindow::CreateTaskList(void)
@@ -246,25 +253,27 @@ void MainWindow::CreateTaskList(void)
                                               &status_flag,
                                               Qt::Popup);
 
-    // Return immediately if the dialog failed, or if list name was invalid...
+    // Return immediately if any invalid condition exists, with appropriate status message
     if(!status_flag)
     {
-        QString status = "No task list created: dialog was closed without input.";
-        emit SignalStatusBarUpdate(QtWarningMsg, status);
+        emit SignalStatus(QtWarningMsg, "No task list created: dialog was closed without input.");
         return;
     }
-    else if (list_name.isEmpty() || !ValidateTaskListTitle(list_name))
+    else if (list_name.isEmpty() || !IsValidTaskListTitle(list_name))
     {
-        QString status = "No task list created: invalid input for list name";
-        emit SignalStatusBarUpdate(QtWarningMsg, status);
+        emit SignalStatus(QtWarningMsg, "No task list created: invalid input for list name");
+        return;
+    }
+    else if (IsDuplicateTaskListTitle(list_name))
+    {
+        emit SignalStatus(QtWarningMsg, "No task list created: input list name already exists");
         return;
     }
 
     // ...otherwise, create list with the input name, add it to the open lists, and save to disk
     open_task_lists_.push_back(std::make_unique<TaskList>(list_name));
     SaveTaskListToFile(GetOpenTaskListPtr(list_name), TaskListSave::kNew);
-    QString status = "Created new task list \"" + list_name + "\"";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, QString("Created new task list \"") + list_name + "\"");
 }
 
 bool MainWindow::RemoveTaskList(TaskList*& i_list)
@@ -305,12 +314,12 @@ bool MainWindow::RemoveTaskList(TaskList*& i_list)
     if (!removed_file.remove())
     {
         QString status = "Failed to remove task list " + removed_file_name + " from disk.";
-        emit SignalStatusBarUpdate(QtWarningMsg, status);
+        emit SignalStatus(QtWarningMsg, status);
         return false;
     }
 
     QString status = "Removed task list \"" + removed_file_name + "\" from disk.";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
     return true;
 }
 
@@ -319,45 +328,64 @@ bool MainWindow::SaveTaskListToFile(TaskList* i_list, TaskListSave i_save_type)
     // If input list is a nullptr, do nothing
     if (!i_list) return false;
 
+    // Determine the correct extension
+    QString file_ext;
+    if (i_save_type == TaskListSave::kCSV
+     || i_save_type == TaskListSave::kCompleted)
+        file_ext = ".csv";
+    else
+        file_ext = ".dat";
+
     // If exporting, opens a dialog for save file name/location...
-    // (Exit without saving if cancel is clicked)
+    // Exit without saving if cancel is clicked, if nothing input, or if save directory is the reserved program one
     QString stored_name = i_list->GetTaskListName(),
             save_name;
     bool flag_name_changed = false;
-    if (i_save_type == TaskListSave::kExport)
+    if (i_save_type == TaskListSave::kExport
+     || i_save_type == TaskListSave::kCSV
+     || i_save_type == TaskListSave::kCompleted )
     {
         QFileDialog dialog_save(nullptr);
         dialog_save.setFileMode  ( QFileDialog::AnyFile     );
-        dialog_save.setNameFilter( tr("Data Files (*.dat)") );
         dialog_save.setViewMode  ( QFileDialog::Detail      );
         dialog_save.setAcceptMode( QFileDialog::AcceptSave  );
         dialog_save.setDirectory ( QDir::homePath()         );
         if (!dialog_save.exec())
         {
             QString status = "Dialog exited: save aborted.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, status);
             return false;
         }
         QStringList selections = dialog_save.selectedFiles();
         if (selections.empty())
         {
             QString status = "No file selected: save aborted.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, status);
             return false;
         }
 
         save_name = selections.first();
-        if(save_name.last(4) != ".dat")
-            save_name.append(".dat");
+        QString save_dir = save_name;
+        save_dir.truncate(save_name.lastIndexOf("/"));
+        if (task_list_dir_.path() == save_dir)
+        {
+            QString status = "Can't save to Telos reserved directory: save aborted.";
+            emit SignalStatus(QtWarningMsg, status);
+            return false;
+        }
+
+        if(save_name.last(4) != file_ext)
+            save_name.append(file_ext);
+
     }
     // If saving existing, use the current input task list name to determine the file name
     else if (i_save_type == TaskListSave::kActive)
     {
         // Validates current save name, exit without saving if invalid
-        if (!ValidateTaskListTitle())
+        if (!IsValidTaskListTitle())
         {
             QString status = "Can not save list, input list name is invalid.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, status);
             return false;
         }
         save_name = ui->teTitleTaskList->toPlainText();
@@ -368,14 +396,15 @@ bool MainWindow::SaveTaskListToFile(TaskList* i_list, TaskListSave i_save_type)
         }
         MainWindow::ConvertSpaceToUnderscore(save_name);
         save_name.prepend(task_list_dir_.path() + "\\");
-        save_name.append(".dat");
+        save_name.append(file_ext);
     }
+    // If saving new, make the file in the reserved Telos space
     else if (i_save_type == TaskListSave::kNew)
     {
         save_name = stored_name;
         MainWindow::ConvertSpaceToUnderscore(save_name);
         save_name.prepend(task_list_dir_.path() + "\\");
-        save_name.append(".dat");
+        save_name.append(file_ext);
     }
 
     // Opens save file - exit without saving if file cannot be opened
@@ -383,61 +412,139 @@ bool MainWindow::SaveTaskListToFile(TaskList* i_list, TaskListSave i_save_type)
     if (!save_file.open(QIODevice::WriteOnly))
     {
         QString status = "Failed to open save file \"" + save_name + "\": save aborted.";
-        emit SignalStatusBarUpdate(QtWarningMsg, status);
+        emit SignalStatus(QtWarningMsg, status);
         return false;
     }
 
     // ****************************************************************************************
     // Save file (with the appropriate name) should have been successfully opened by this point
+    // Begin assembling data from list to file
     // ****************************************************************************************
 
-    // Construct a byte array with all information stored in list by iterating through each task
-    // First entry is the list name, all the subsequent entries are tasks (deliminated by DIVIDE_TASK)
-    QByteArray data;
-    data.append(i_list->GetTaskListName().toLocal8Bit());
-    for(Task* i : i_list->GetAllTaskPtrsFromList())
+    // Construct default delineators for Telos .dat file
+    QByteArray my_line_begin,
+               my_divide_task,
+               my_divide_field,
+               my_divide_subfield,
+               my_line_end;
+
+    // If .dat file, use the Telos-defined delineators. No begin/end line necessary
+    if (file_ext == ".dat")
     {
+        my_divide_task.    append(MainWindow::DIVIDE_TASK    );
+        my_divide_field.   append(MainWindow::DIVIDE_FIELD   );
+        my_divide_subfield.append(MainWindow::DIVIDE_SUBFIELD);
+    }
+    // If .csv file, prompt the user for the desired field delineation (comma, tab, colon)
+    // Add additional formatting to put every entry in quotes, and new lines for task delineation
+    else
+    {
+        bool ok;
+        QStringList delineation_options;
+        delineation_options << tr("Comma") << tr("Tab")<< tr("Colon");
+        QString select_delineate = QInputDialog::getItem(this,
+                                                         tr("Select delineation character"),
+                                                         tr("Select delineation character for CSV export"),
+                                                         delineation_options,
+                                                         0,
+                                                         false,
+                                                         &ok);
+        if (ok && !select_delineate.isEmpty())
+        {
+            if     (select_delineate=="Comma") my_divide_field.append(',');
+            else if(select_delineate=="Tab")   my_divide_field.append('\t');
+            else if(select_delineate=="Colon") my_divide_field.append(':');
+            else                               my_divide_field.append(',');
+        }
+
+        // New line to delineate entries (typical CSV format)
+        my_divide_task.append('\n');
+
+        // Add quotes at beginning of line, end of line, and before/after the field divide
+        // Assures that every entry is within quotation marks (typical CSV format)
+        my_line_begin.append('\"');
+        my_divide_field.prepend('\"');
+        my_divide_field.append('\"');
+        my_line_end.append('\"');
+
+        // Uses a simple comma and space for subfield divides
+        my_divide_subfield.append(',');
+        my_divide_subfield.append(' ');
+    }
+
+    // If exporting completed tasks, get the completed list; otherwise, get all the tasks
+    Task::PtrVector save_list;
+    if (active_task_list_)
+            save_list = (i_save_type == TaskListSave::kCompleted) ? active_task_list_->GetAllCompleted() : active_task_list_->GetAllTaskPtrsFromList();
+
+    // Construct a byte array with all information stored in list by iterating through each task
+    // First entry is the list name: skip if listing completed tasks
+    QByteArray data;
+    if (i_save_type != TaskListSave::kCompleted)
+    {
+        data.append(my_line_begin);
+        data.append(i_list->GetTaskListName().toLocal8Bit());
+        data.append(my_line_end);
+    }
+
+    // All subsequent entries are individual tasks (deliminated by DIVIDE_TASK)
+    for(Task* i : save_list)
+    {
+        // Start new task
+        data.append(my_divide_task);
+        data.append(my_line_begin);
+
         // Task Name
-        data.append(MainWindow::DIVIDE_TASK);
-        data.append(i->GetTaskName().toLocal8Bit());
+        QString my_name = i->GetTaskName();
+        if (file_ext == ".csv") MainWindow::ConvertToDoubleQuotes(my_name);
+        data.append(my_name.toLocal8Bit());
+        data.append(my_divide_field);
 
         // Task Description: EMPTY for no description
-        data.append(MainWindow::DIVIDE_FIELD);
-        if (!i->GetTaskDescription().isEmpty()) data.append(i->GetTaskDescription().toLocal8Bit());
+        QString my_descript = i->GetTaskDescription();
+        if (!my_descript.isEmpty())
+        {
+            if (file_ext == ".csv") MainWindow::ConvertToDoubleQuotes(my_descript);
+            data.append(my_descript.toLocal8Bit());
+        }
         else data.append(MainWindow::EMPTY);
+        data.append(my_divide_field);
 
         // Task Deadline: EMPTY for no deadline
-        data.append(MainWindow::DIVIDE_FIELD);
         if (i->GetTaskDeadline().isValid()) data.append(i->GetTaskDeadline().toString().toLocal8Bit());
         else data.append(MainWindow::EMPTY);
+        data.append(my_divide_field);
 
         // Task Completed: EMPTY for not complete
-        data.append(MainWindow::DIVIDE_FIELD);
         if (i->GetTaskCompleted().isValid()) data.append(i->GetTaskCompleted().toString().toLocal8Bit());
         else data.append(MainWindow::EMPTY);
+        data.append(my_divide_field);
 
         // Task Prerequisites: EMPTY if no prerequisites, otherwise prerequisites seperated by DIVIDE_SUBFIELD
-        data.append(MainWindow::DIVIDE_FIELD);
-        std::vector<Task *> prereq = i->GetTaskPrereq();
+        Task::PtrVector prereq = i->GetTaskPrereq();
         if (!prereq.empty())
             for (int j=0; j<prereq.size(); ++j)
             {
-                data.append(prereq[j]->GetTaskName().toLocal8Bit());
-                if (j != prereq.size()-1)
-                    data.append(MainWindow::DIVIDE_SUBFIELD);
+                QString my_prereq = prereq[j]->GetTaskName();
+                if (file_ext == ".csv") MainWindow::ConvertToDoubleQuotes(my_prereq);
+                data.append(my_prereq.toLocal8Bit());
+                if (j != prereq.size()-1) data.append(my_divide_subfield);
             }
         else data.append(MainWindow::EMPTY);
+        data.append(my_divide_field);
 
         // Task Dependencies: EMPTY only if no dependencies, otherwise dependencies seperated by DIVIDE_SUBFIELD
-        data.append(MainWindow::DIVIDE_FIELD);
-        std::vector<Task *> depend = i->GetTaskDepend();
+        Task::PtrVector depend = i->GetTaskDepend();
         if (!depend.empty())
             for (int j=0; j<depend.size(); ++j)
             {
-                data.append(depend[j]->GetTaskName().toLocal8Bit());
-                if (j != depend.size()-1) data.append(MainWindow::DIVIDE_SUBFIELD);
+                QString my_depend = depend[j]->GetTaskName();
+                if (file_ext == ".csv") MainWindow::ConvertToDoubleQuotes(my_depend);
+                data.append(my_depend.toLocal8Bit());
+                if (j != depend.size()-1) data.append(my_divide_subfield);
             }
         else data.append(MainWindow::EMPTY);
+        data.append(my_line_end);
     }
 
     // Write the data to the save file, close it, and reset the "list changed" flag
@@ -453,22 +560,21 @@ bool MainWindow::SaveTaskListToFile(TaskList* i_list, TaskListSave i_save_type)
         if (!previous_file.remove())
         {
             QString status = "Failed to remove \"" + stored_name + "\" from disk.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, status);
         }
     }
 
     // Return true to indicate a successful write
-    QString status = "Successfully saved task list \"" + i_list->GetTaskListName() + "\" to disk.";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    QString status = QString("Successfully ") + (i_save_type == TaskListSave::kExport ? "exported" : "saved") + " task list \"" + i_list->GetTaskListName() + "\" to disk.";
+    emit SignalStatus(QtInfoMsg, status);
     return true;
 }
 
-bool MainWindow::LoadTaskListFromFile(QString i_name)
+bool MainWindow::LoadTaskListFromFile(QString i_file_name)
 {
-    // If no file name is provided, prompt user for load file name/location to import
-    // (Exit without saving if cancel is clicked)
+    // If no file name provided, prompt user for file name/location; if cancel is clicked, exit without saving
     QString load_name;
-    if (i_name.isEmpty())
+    if (i_file_name.isEmpty())
     {
         QFileDialog dialog_load(nullptr);
         dialog_load.setFileMode(QFileDialog::ExistingFile);
@@ -478,50 +584,51 @@ bool MainWindow::LoadTaskListFromFile(QString i_name)
         dialog_load.setDirectory(QDir::homePath());
         if (!dialog_load.exec())
         {
-            QString status = "Dialog exited: load aborted.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, "Dialog exited: load aborted.");
             return false;
         }
         QStringList selections = dialog_load.selectedFiles();
         if (selections.empty())
         {
-            QString status = "No file selected: load aborted.";
-            emit SignalStatusBarUpdate(QtWarningMsg, status);
+            emit SignalStatus(QtWarningMsg, "Load aborted: No file selected: ");
             return false;
         }
         load_name = selections.first();
     }
     else
-        load_name = task_list_dir_.path() + "\\" + i_name;
+        load_name = task_list_dir_.path() + "\\" + i_file_name;
 
-    // Opens selected file (exit without loading if file cannot be opened)
+    // Opens, reads, and closes selected file; if file cannot be opened, exit function without loading
+    // Splits file into a list of byte arrays, delineated by DIVIDE_TASK
     QFile load_file(load_name);
     if (!load_file.open(QIODevice::ReadOnly))
     {
-        QString status = "Failed to open task list \"" + load_name + "\" from disk.";
-        emit SignalStatusBarUpdate(QtWarningMsg, status);
+        emit SignalStatus(QtWarningMsg, "Failed to open task list \"" + load_name + "\" from disk.");
         return false;
     }
-
-    // ****************************************************************************************
-    // Load file (with the appropriate name) should have been successfully opened by this point
-    // ****************************************************************************************
-
-    // Read the selected file into a list of byte arrays and close the file
-    // Each list item from the file is delineated by DIVIDE_TASK
     QList<QByteArray> data_file = load_file.readAll().split(MainWindow::DIVIDE_TASK);
     load_file.close();
 
-    // First item is incoming list name: read, pop entry, and create task list
+    // First item is incoming list name; if name is already in open lists, exit immediately
+    // Otherwise, create task list with that name; if name is already in list, exit immediately
     QString list_name = QString::fromUtf8(data_file.first().toStdString());
     data_file.pop_front();
+    if (IsDuplicateTaskListTitle(list_name))
+    {
+        emit SignalStatus(QtWarningMsg, "Load aborted: File name already exists");
+        return false;
+    }
     open_task_lists_.push_back(std::make_unique<TaskList>(list_name));
     TaskList* o_list = open_task_lists_.back().get();
 
+    // *******************************************************************************************
+    // Task list with valid name should be successfully opened by this point
+    // Going forward, invalid inputs will result in logged errors, with unrecoverable data ignored
+    // *******************************************************************************************
+
     // Persistent containers used to capture the incoming list of prereqs/depends for each task
-    // Not released until the load function is done
-    // Necessary because memory addresses have not yet been assigned; all tasks must be in memory before assigning prereq/depend pointers
-    std::vector<QString> i_names_all;
+    // Memory addresses have not yet been assigned; all tasks must be in memory before assigning prereq/depend pointers
+    std::vector<QString>     i_names_all;
     std::vector<QStringList> i_prereq_all, i_depend_all;
 
     // Each remaining item is a task entry
@@ -593,13 +700,20 @@ bool MainWindow::LoadTaskListFromFile(QString i_name)
     }
 
     // If file was imported, save to disk immediately
-    if (i_name.isEmpty())
+    if (i_file_name.isEmpty())
         SaveTaskListToFile(o_list, TaskListSave::kNew);
 
     // Return true to indicate successful load
     QString status = "Successfully loaded task list \"" + list_name + "\" from disk.";
-    emit SignalStatusBarUpdate(QtInfoMsg, status);
+    emit SignalStatus(QtInfoMsg, status);
     return true;
+}
+
+void MainWindow::ConvertToDoubleQuotes(QString &i_string)
+{
+    for (int i=0; i<i_string.size(); ++i)
+        if (i_string[i] == '\"')
+            i_string.insert(i++, '\"');
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
@@ -733,7 +847,7 @@ void MainWindow::UpdateDisplayActiveTask(void)
 
     // Record the saved list of prerequisites when a task is loaded
     // Used to find changes when saving updated information
-    active_task_saved_prereq_ = active_task_ ? GetActiveTaskPrereqSaved() : std::vector<Task*>();
+    active_task_saved_prereq_ = active_task_ ? GetActiveTaskPrereqSaved() : Task::PtrVector();
 
     // Enable/disable task controls for saving, deleting, and linking/unlinking prerequisites
     ui->pbSaveChanges        ->setEnabled(false);
@@ -752,7 +866,7 @@ void MainWindow::UpdateDisplayText(bool            i_enable,
 }
 
 void MainWindow::UpdateDisplayCombo(bool               i_enable,
-                                    std::vector<Task*> i_list,
+                                    Task::PtrVector    i_list,
                                     QComboBox*         i_combo_box,
                                     QStringListModel*  i_model)
 {
@@ -802,7 +916,7 @@ void MainWindow::UpdateDisplayDateTimeCurrent(QDateTime      i_time,
     else i_date_time_edit->hide();
 }
 
-bool MainWindow::ValidateTaskListTitle(QString i_name)
+bool MainWindow::IsValidTaskListTitle(QString i_name)
 {
     // Task list names must contain only a-z, A-Z, 0-9, spaces, and dashes
     // The first character cannot be a space or a dash
@@ -830,6 +944,22 @@ bool MainWindow::ValidateTaskListTitle(QString i_name)
     return matched_text.hasMatch();
 }
 
+bool MainWindow::IsDuplicateTaskListTitle(QString i_name)
+{
+    // If no name was input, check the current user input name
+    if (i_name.isEmpty())
+        i_name = ui->teTitleTaskList->toPlainText();
+
+    // Searches open lists for input name
+    bool found = false;
+    for (int i=0; i<open_task_lists_.size() && !found; ++i)
+        if (open_task_lists_[i]->GetTaskListName() == i_name)
+            found = true;
+
+    // Return true if a duplicate name was found, otherwise false
+    return found;
+}
+
 void MainWindow::PromptSaveTask(void)
 {
     if (!ui->pbSaveChanges->isEnabled()) return;
@@ -850,7 +980,7 @@ void MainWindow::PromptSaveTaskList(void)
     if (reply == QMessageBox::Save) SaveTaskListToFile(active_task_list_, TaskListSave::kActive);
 }
 
-void MainWindow::SlotStatusBarUpdate(QtMsgType i_type, QString i_message)
+void MainWindow::SlotStatus(QtMsgType i_type, QString i_message)
 {
     ui->teStatusBar->setPlainText(i_message);
     if (debug_mode_)
@@ -871,4 +1001,33 @@ void MainWindow::SlotStatusBarUpdate(QtMsgType i_type, QString i_message)
             break;
         }
     }
+}
+
+void MainWindow::on_actionTelos_triggered()
+{
+    QFile read_me_file(":/text/README.md");
+    if (!read_me_file.open(QIODeviceBase::ReadOnly))
+        return;
+    QString read_me_string = QString::fromStdString(read_me_file.readAll().toStdString());
+    read_me_file.close();
+
+    QMessageBox about_telos_msg_box(ui->centralwidget);
+    about_telos_msg_box.setTextFormat(Qt::RichText);   //this is what makes the links clickable
+    about_telos_msg_box.setText(read_me_string);
+    about_telos_msg_box.setWindowTitle("About Telos");
+    about_telos_msg_box.setStandardButtons(QMessageBox::Ok);
+    about_telos_msg_box.exec();
+}
+
+
+void MainWindow::on_actionClearCompleted_triggered()
+{
+    PromptSaveTask();
+    PromptSaveTaskList();
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+                                                              "Export to CSV?",
+                                                              "Export completed tasks to CSV before deleting them FOREVER?",
+                                                              QMessageBox::Save|QMessageBox::Discard);
+    if (reply == QMessageBox::Save) SaveTaskListToFile(active_task_list_, TaskListSave::kCompleted);
+    active_task_list_->RemoveTasksFromList(active_task_list_->GetAllCompleted());
 }

@@ -2,4 +2,7 @@
     <qresource prefix="/style">
         <file>ElegantDark.qss</file>
     </qresource>
+    <qresource prefix="/text">
+        <file>README.md</file>
+    </qresource>
 </RCC>

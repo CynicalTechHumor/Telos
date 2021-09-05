@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -44,11 +44,10 @@ public:
 
 private slots:
 
-    // If rejected, close dialog without doing anything
-    void on_buttonBox_rejected() { this->close(); }
-
     // If accepted, signal the main window with the selected prerequisites
+    // If rejected, close dialog without doing anything
     void on_buttonBox_accepted();
+    void on_buttonBox_rejected() { this->close(); }
 
 private:
 

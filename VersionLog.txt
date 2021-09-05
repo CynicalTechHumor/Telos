@@ -1,0 +1,23 @@
+Telos Changelog
+
+v0.9.0
+2021-09-02
+-Initial upload
+
+v0.9.1
+2021-09-05
+-Added File menu option for exporting to CSV format
+-Added File menu option for clearing completed tasks, with the option to export them to CSV first
+-Added "Info" menu, with the following items
+   -"Telos Source Code...", linking directly to the Telos Github page
+   -"About Telos...", with copyright and license information
+   -"About GPLv3...", linking to the GNU GPLv3 website
+   -"About qt...", the standard qt information dialog box
+   -"About Cynical Tech Humor LLC...", linking to the Cynical Tech Humor homepage
+-Can no longer select a completed task as a prerequisite
+-No longer allows duplicate task list names
+-No longer allows exports to the Telos reserved directory for task lists
+-Prompts "save current task/list" before exporting if any unsaved changes
+-Prompts confirmation dialog box for removing list
+-Push Button for show/hide open task lists now has "<"/">" text
+-Telos makes additional use of the C++ standard library

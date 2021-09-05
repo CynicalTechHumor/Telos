@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ enum class TaskFilter {kCurrent, kCompleted, kPending, kAll};
 enum class TaskSort {kName, kDeadline};
 
 // Save options
-enum class TaskListSave {kNew, kActive, kExport};
+enum class TaskListSave {kNew, kActive, kExport, kCSV, kCompleted};
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -63,10 +63,10 @@ private:
     // Data
 
     Ui::MainWindow*                        ui;
-    std::vector<std::unique_ptr<TaskList>> open_task_lists_;
+    TaskList::PtrUniqueVector              open_task_lists_;
     TaskList*                              active_task_list_;
     Task*                                  active_task_;
-    std::vector<Task*>                     active_task_saved_prereq_;
+    Task::PtrVector                        active_task_saved_prereq_;
     TaskFilter                             active_filter_;
     TaskSort                               active_sort_;
     QPoint                                 drag_position_;
@@ -88,8 +88,8 @@ private:
     QString            GetActiveTaskListName    (void) { return active_task_list_ ? active_task_list_-> GetTaskListName()    : QString();            }
 
     //
-    TaskList* GetOpenTaskListPtr(QString i_name);
-    Task*     GetSelectedTask(void);
+    TaskList* GetOpenTaskListPtr (QString i_name);
+    Task*     GetSelectedTask    (void);
 
     // ********
     // Mutators
@@ -122,6 +122,7 @@ private:
     // ******
 
     static void ConvertSpaceToUnderscore(QString &i_name) { while (i_name.indexOf(' ') != -1) i_name.replace(i_name.indexOf(' '), 1, '_'); }
+    static void ConvertToDoubleQuotes(QString&);
 
     // *********
     // Interface
@@ -145,7 +146,8 @@ private:
     // ValidateTaskListTitle()
     // Empty input string checks the user input, otherwise checks validity of input string
     // When checking the user input, turns task list name field red when invalid data has been input
-    bool ValidateTaskListTitle(QString = QString());
+    bool IsValidTaskListTitle    (QString = QString());
+    bool IsDuplicateTaskListTitle(QString = QString());
 
     // PromptSaveTask(), PromptSaveTaskList()
     // If there are unsaved changes to the task/list, prompts the user to save them
@@ -155,11 +157,11 @@ private:
 
 signals:
 
-    void SignalStatusBarUpdate(QtMsgType, QString);
+    void SignalStatus(QtMsgType, QString);
 
 public slots:
 
-    void SlotStatusBarUpdate(QtMsgType, QString);
+    void SlotStatus(QtMsgType, QString);
 
 private slots:
 
@@ -189,7 +191,16 @@ private slots:
 
     void on_actionExportList_triggered(void)
     {
+        PromptSaveTask();
+        PromptSaveTaskList();
         SaveTaskListToFile(active_task_list_, TaskListSave::kExport);
+    }
+
+    void on_actionExportCSV_triggered()
+    {
+        PromptSaveTask();
+        PromptSaveTaskList();
+        SaveTaskListToFile(active_task_list_, TaskListSave::kCSV);
     }
 
     void on_menuQuit_triggered(void)
@@ -210,6 +221,12 @@ private slots:
     {
         PromptSaveTask();
         UpdateDisplayActiveTask();
+    }
+
+    void on_pbToggleShowOpenTaskLists_clicked(void)
+    {
+        ui->pbToggleShowOpenTaskLists->setText   (  ui->lwOpenTaskLists->isVisible() ? ">" : "<" );
+        ui->lwOpenTaskLists->          setVisible( !ui->lwOpenTaskLists->isVisible()             );
     }
 
     void on_pbCreateTask_clicked(void)
@@ -240,14 +257,9 @@ private slots:
         UpdateDisplayActiveTaskList();
     }
 
-    void on_pbToggleShowOpenTaskLists_clicked(void)
-    {
-        ui->lwOpenTaskLists->setVisible(!ui->lwOpenTaskLists->isVisible());
-    }
-
     void on_teTitleTaskList_textChanged(void)
     {
-        ValidateTaskListTitle();
+        IsValidTaskListTitle();
     }
 
     void on_teTitle_textChanged(void)
@@ -333,6 +345,12 @@ private slots:
         ChangePrereq(i_list, i_select);
     }
 
+    void on_actionSource_triggered()     { QDesktopServices::openUrl(QUrl("https://github.com/CynicalTechHumor/Telos", QUrl::TolerantMode));    }
+    void on_actionCTH_triggered()        { QDesktopServices::openUrl(QUrl("https://www.cynicaltechhumor.com", QUrl::TolerantMode));             }
+    void on_actionAboutGPLv3_triggered() { QDesktopServices::openUrl(QUrl("https://www.gnu.org/licenses/gpl-3.0.en.html", QUrl::TolerantMode)); }
+    void on_actionqt_triggered()         { QMessageBox::aboutQt(ui->centralwidget, "About qt");                                                 }
+    void on_actionTelos_triggered();
+    void on_actionClearCompleted_triggered();
 };
 
 #endif // MAINWINDOW_H

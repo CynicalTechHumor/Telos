@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -55,50 +55,35 @@ bool Task::AreTaskPrereqComplete(void)
 
 void Task::AddTaskPrereq(Task *i_task)
 {
-    if (!i_task) return;                // Do nothing if input is nullptr
-    if (!prerequisites_.empty())
-        for (Task *i : prerequisites_)
-            if (i == i_task) return;    // Do nothing if input matches an existing prereq
-    prerequisites_.push_back(i_task);   // Otherwise, add input to prereqs
+    if (!i_task) return;
+    if (prerequisites_.end() != std::find(prerequisites_.begin(), prerequisites_.end(), i_task));
+        prerequisites_.push_back(i_task);
 }
 
 void Task::AddTaskDepend(Task *i_task)
 {
-    if (!i_task) return;                // Do nothing if input is nullptr
-    if (!dependencies_.empty())
-        for (Task *i : dependencies_)
-            if (i == i_task) return;    // Do nothing if input matches an existing depend
-    dependencies_.push_back(i_task);    // Otherwise, add input to depends
+    if (!i_task) return;
+    if (dependencies_.end() != std::find(dependencies_.begin(), dependencies_.end(), i_task));
+        dependencies_.push_back(i_task);
 }
 
 void Task::RemoveTaskPrereq(Task *i_ptr)
 {
-    int index{GetPtrIndex(i_ptr, prerequisites_)};
-    if (index == -1) return;                              // Do nothing if prereq isn't in list
-    prerequisites_.erase(prerequisites_.begin() + index); // Otherwise, remove prereq
+    std::vector<Task*>::iterator my_task_iter = std::find(prerequisites_.begin(), prerequisites_.end(), i_ptr);
+    if (my_task_iter != prerequisites_.end()) prerequisites_.erase(my_task_iter);
 }
 
 void Task::RemoveTaskDepend(Task *i_ptr)
 {
-    int index{GetPtrIndex(i_ptr, dependencies_)};
-    if (index == -1) return;                              // Do nothing if depend isn't in list
-    dependencies_.erase(dependencies_.begin() + index);   // Otherwise, remove depend
+    std::vector<Task*>::iterator my_task_iter = std::find(dependencies_.begin(), dependencies_.end(), i_ptr);
+    if (my_task_iter != dependencies_.end()) dependencies_.erase(my_task_iter);
 }
 
 QStringList Task::GetTaskNames(std::vector<Task*> i_list)
 {
     QStringList r_list;
-    for (int i=0; i<i_list.size(); ++i) r_list.push_back(i_list[i]->GetTaskName());
+    for (std::vector<Task*>::iterator i = i_list.begin(); i != i_list.end(); ++i) r_list.push_back((*i)->GetTaskName());
     return r_list;
-}
-
-int Task::GetPtrIndex(Task* i_ptr, std::vector<Task*> i_list)
-{
-    int index{-1};
-    for (int i{0}; i<i_list.size() && index == -1; ++i)
-        if (i_list[i] == i_ptr)
-            index = i;
-    return index;
 }
 
 QStringList Task::SubtractTaskNames(QStringList in_1, QStringList in_2)
@@ -127,13 +112,13 @@ QStringList Task::SubtractTaskNames(QStringList in_1, QStringList in_2)
 TaskList::TaskList(void)
 {
     name_ = "";
-    list_ = std::vector<std::unique_ptr<Task>>();
+    list_ = Task::PtrUniqueVector();
 }
 
 TaskList::TaskList(QString input_name)
 {
     name_ = input_name;
-    list_ = std::vector<std::unique_ptr<Task>>();
+    list_ = Task::PtrUniqueVector();
 }
 
 TaskList::~TaskList(void)
@@ -142,54 +127,45 @@ TaskList::~TaskList(void)
 
 std::vector<Task*> TaskList::GetAllTaskPtrsFromList(void)
 {
-    std::vector<Task*> list_ptrs;
-    for (int i=0; i<list_.size(); ++i)
-        list_ptrs.push_back(list_[i].get());
+    Task::PtrVector list_ptrs;
+    for (Task::PtrUniqueVectorIterate i = list_.begin(); i<list_.end(); ++i)
+        list_ptrs.push_back((*i).get());
     return list_ptrs;
 }
 
 QStringList TaskList::GetAllTaskNamesFromList(void)
 {
     QStringList list_names;
-    for(int i=0; i<list_.size(); ++i)
-        list_names.append(list_[i]->GetTaskName());
+    for (Task::PtrUniqueVectorIterate i = list_.begin(); i<list_.end(); ++i)
+        list_names.append((*i)->GetTaskName());
     return list_names;
 }
 
-int TaskList::GetIndexFromTaskList(QString i_name)
+Task::PtrVector TaskList::GetAllCompleted(void)
 {
-    int index{-1};
-    for (int i=0; i<list_.size() && index == -1; ++i)
-        if(list_[i]->GetTaskName()==i_name)
-            index = i;
-    return index;
-}
-
-int TaskList::GetIndexFromTaskList(Task* i_ptr)
-{
-    int index{-1};
-    for (int i=0; i<list_.size() && index == -1; ++i)
-        if(list_[i].get()==i_ptr)
-            index = i;
-    return index;
+    Task::PtrVector list_ptrs;
+    for (Task::PtrUniqueVectorIterate i = list_.begin(); i<list_.end(); ++i)
+        if ((*i)->GetTaskCompleted().isValid())
+            list_ptrs.push_back((*i).get());
+    return list_ptrs;
 }
 
 Task* TaskList::GetPtrFromTaskList(QString i_name)
 {
     Task *o_ptr = nullptr;
-    for (int i=0; i<list_.size(); ++i)
-        if(list_[i]->GetTaskName()==i_name)
-            o_ptr = list_[i].get();
+    for (Task::PtrUniqueVectorIterate i = list_.begin(); i<list_.end(); ++i)
+        if((*i)->GetTaskName()==i_name)
+            o_ptr = (*i).get();
     return o_ptr;
 }
 
 std::vector<Task*> TaskList::GetPtrsFromTaskList(QStringList i_list)
 {
-    std::vector<Task*> o;
+    Task::PtrVector o;
     Task* temp;
     for(int i=0; i<i_list.size(); ++i)
     {
-        temp = GetPtrFromTaskList(i_list.at(i));
+        temp = GetPtrFromTaskList(i_list[i]);
         if (temp) o.push_back(temp);
     }
     return o;
@@ -197,8 +173,8 @@ std::vector<Task*> TaskList::GetPtrsFromTaskList(QStringList i_list)
 
 bool TaskList::CheckDuplicateTaskName(QString i_name, Task *i_ptr)
 {
-    for(int i=0; i<list_.size(); ++i)
-        if (list_[i]->GetTaskName() == i_name && list_[i].get() != i_ptr)
+    for (Task::PtrUniqueVectorIterate i = list_.begin(); i<list_.end(); ++i)
+        if ((*i)->GetTaskName() == i_name && (*i).get() != i_ptr)
             return true;
     return false;
 }
@@ -216,7 +192,7 @@ void TaskList::GetChainedPrereq(QStringList *o_list, QString i_name)
 
     // Recursively call prerequisites to find all chained prerequisites
     // Base case: no prerequisites to call
-    std::vector<Task*> prereqs = i_ptr->GetTaskPrereq();
+    Task::PtrVector prereqs = i_ptr->GetTaskPrereq();
     for (Task* i : prereqs)
         this->GetChainedPrereq(o_list, i->GetTaskName());
 }
@@ -234,15 +210,22 @@ void TaskList::GetChainedDepend(QStringList *o_list, QString i_name)
 
     // Recursively call prerequisites to find all chained dependents
     // Base case: no dependents to call
-    std::vector<Task*> depend = i_ptr->GetTaskDepend();
+    Task::PtrVector depend = i_ptr->GetTaskDepend();
     for (Task* i : depend)
         this->GetChainedDepend(o_list, i->GetTaskName());
+}
+
+void TaskList::GetCompleted(QStringList* o_list)
+{
+    for(Task::PtrUniqueVectorIterate i = list_.begin(); i != list_.end(); ++i)
+        if ((*i)->GetTaskCompleted().isValid())
+            o_list->push_back((*i)->GetTaskName());
 }
 
 void TaskList::SetTaskPrereqFromList(QString i_task, QStringList i_task_prereq)
 {
     Task* task_ptr{GetPtrFromTaskList(i_task)};
-    std::vector<Task*> task_prereq_ptrs = GetPtrsFromTaskList(i_task_prereq);
+    Task::PtrVector task_prereq_ptrs = GetPtrsFromTaskList(i_task_prereq);
     for (Task* i : task_prereq_ptrs)
         task_ptr->AddTaskPrereq(i);
 }
@@ -250,7 +233,7 @@ void TaskList::SetTaskPrereqFromList(QString i_task, QStringList i_task_prereq)
 void TaskList::SetTaskDependFromList(QString i_task, QStringList i_task_depend)
 {
     Task* task_ptr{GetPtrFromTaskList(i_task)};
-    std::vector<Task*> task_depend_ptrs = GetPtrsFromTaskList(i_task_depend);
+    Task::PtrVector task_depend_ptrs = GetPtrsFromTaskList(i_task_depend);
     for (Task* i : task_depend_ptrs)
         task_ptr->AddTaskDepend(i);
 }
@@ -266,28 +249,19 @@ Task* TaskList::AddTaskToList(QString   i_name,
 
 void TaskList::RemoveTaskFromList(QString i_name)
 {
-    int index{GetIndexFromTaskList(i_name)};
-    if (index == -1) return;
-    RemoveIndexFromList(index);
+    Task* i_ptr = GetPtrFromTaskList(i_name);
+    Task::PtrUniqueVectorIterate i = std::find_if(list_.begin(), list_.end(), [i_ptr](Task::PtrUnique& e) {return e.get() == i_ptr;});
+    if (i != list_.end()) list_.erase(i);
 }
 
 void TaskList::RemoveTaskFromList(Task* i_ptr)
 {
-    int index{GetIndexFromTaskList(i_ptr)};
-    if (index == -1) return;
-    RemoveIndexFromList(index);
+    Task::PtrUniqueVectorIterate i = std::find_if(list_.begin(), list_.end(), [i_ptr](Task::PtrUnique& e) {return e.get() == i_ptr;});
+    if (i != list_.end()) list_.erase(i);
 }
 
-void TaskList::RemoveIndexFromList(int index)
+void TaskList::RemoveTasksFromList(Task::PtrVector i_list)
 {
-    // First, remove the task from the prereqs/depends of associated tasks
-    std::vector<Task*> prereqs = list_[index]->GetTaskPrereq(),
-                       depends = list_[index]->GetTaskDepend();
-    for (int i=0; i<prereqs.size(); ++i)
-        prereqs[i]->RemoveTaskDepend(list_[index].get());
-    for (int i=0; i<depends.size(); ++i)
-        depends[i]->RemoveTaskPrereq(list_[index].get());
-
-    // Then, erase the task
-    list_.erase(list_.begin() + index);
+    for (Task* i : i_list)
+        RemoveTaskFromList(i);
 }

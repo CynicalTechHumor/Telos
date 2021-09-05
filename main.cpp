@@ -1,4 +1,4 @@
-//    Telos - Version 0.9.0
+//    This file is part of Telos v0.9.1
 //    Copyright (c) 2021, Cynical Tech Humor LLC
 
 //    Telos is free software: you can redistribute it and/or modify
@@ -46,7 +46,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 int main(int argc, char *argv[])
 {
     // Declarations
-    qInstallMessageHandler(myMessageOutput);
+    //qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
     MainWindow w;
 
@@ -60,12 +60,7 @@ int main(int argc, char *argv[])
         a.setStyleSheet(styleSheet);
     }
 
-    // Show main window
+    // Main loop
     w.show();
-
-    // Loop
-    int returnValue = a.exec();
-
-    // Cleanup
-    return returnValue;
+    return a.exec();
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1622</width>
-    <height>715</height>
+    <width>1444</width>
+    <height>688</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,44 +19,44 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_10">
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_7">
+     <widget class="QListWidget" name="lwOpenTaskLists">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>250</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>250</width>
+        <height>1000</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="V_TasksDataStatus">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_9">
+       <layout class="QHBoxLayout" name="H_Tasks_Data">
         <property name="sizeConstraint">
          <enum>QLayout::SetNoConstraint</enum>
         </property>
         <item>
-         <widget class="QListWidget" name="lwOpenTaskLists">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>200</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>200</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="baseSize">
-           <size>
-            <width>200</width>
-            <height>0</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout">
+         <layout class="QVBoxLayout" name="V_TasksAndFilters">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <layout class="QHBoxLayout" name="H_TaskListName">
             <item>
              <widget class="QPushButton" name="pbToggleShowOpenTaskLists">
               <property name="sizePolicy">
@@ -78,7 +78,7 @@
                </size>
               </property>
               <property name="text">
-               <string>PushButton</string>
+               <string>&lt;</string>
               </property>
              </widget>
             </item>
@@ -135,9 +135,9 @@
            </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
+           <layout class="QVBoxLayout" name="V_Filters">
             <item>
-             <layout class="QGridLayout" name="gridLayout_7">
+             <layout class="QGridLayout" name="G_Filters">
               <item row="3" column="0">
                <widget class="QRadioButton" name="rbPending">
                 <property name="text">
@@ -214,11 +214,14 @@
          </layout>
         </item>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_6">
+         <layout class="QVBoxLayout" name="V_Data">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMaximumSize</enum>
+          </property>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <layout class="QHBoxLayout" name="H_TaskInfo">
             <item>
-             <layout class="QGridLayout" name="gridLayout_4">
+             <layout class="QGridLayout" name="G_PushButtons">
               <property name="sizeConstraint">
                <enum>QLayout::SetNoConstraint</enum>
               </property>
@@ -350,7 +353,7 @@
              </spacer>
             </item>
             <item>
-             <layout class="QVBoxLayout" name="verticalLayout_9">
+             <layout class="QVBoxLayout" name="V_DateTimeAndCombo">
               <property name="spacing">
                <number>0</number>
               </property>
@@ -358,7 +361,7 @@
                <enum>QLayout::SetNoConstraint</enum>
               </property>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <layout class="QHBoxLayout" name="H_Deadline">
                 <property name="topMargin">
                  <number>10</number>
                 </property>
@@ -456,7 +459,7 @@
                </layout>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_6">
+               <layout class="QHBoxLayout" name="H_Completed">
                 <property name="topMargin">
                  <number>10</number>
                 </property>
@@ -557,7 +560,7 @@
                </layout>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <layout class="QHBoxLayout" name="H_Prerequisites">
                 <property name="topMargin">
                  <number>10</number>
                 </property>
@@ -649,7 +652,7 @@
                </layout>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_7">
+               <layout class="QHBoxLayout" name="H_Dependencies">
                 <property name="topMargin">
                  <number>10</number>
                 </property>
@@ -786,7 +789,7 @@
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <layout class="QHBoxLayout" name="H_RemoveAndSave">
             <item>
              <widget class="QPushButton" name="pbRemoveTask">
               <property name="sizePolicy">
@@ -898,7 +901,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1622</width>
+     <width>1444</width>
      <height>26</height>
     </rect>
    </property>
@@ -913,10 +916,24 @@
     <addaction name="actionImportList"/>
     <addaction name="separator"/>
     <addaction name="actionExportList"/>
+    <addaction name="actionExportCSV"/>
+    <addaction name="actionClearCompleted"/>
     <addaction name="separator"/>
     <addaction name="menuQuit"/>
    </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>Info</string>
+    </property>
+    <addaction name="actionSource"/>
+    <addaction name="separator"/>
+    <addaction name="actionTelos"/>
+    <addaction name="actionAboutGPLv3"/>
+    <addaction name="actionqt"/>
+    <addaction name="actionCTH"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuAbout"/>
   </widget>
   <action name="menuQuit">
    <property name="text">
@@ -963,11 +980,46 @@
     <string>Ctrl+S</string>
    </property>
   </action>
+  <action name="actionTelos">
+   <property name="text">
+    <string>About Telos...</string>
+   </property>
+  </action>
+  <action name="actionSource">
+   <property name="text">
+    <string>Telos Source Code...</string>
+   </property>
+  </action>
+  <action name="actionCTH">
+   <property name="text">
+    <string>About Cynical Tech Humor LLC...</string>
+   </property>
+  </action>
+  <action name="actionqt">
+   <property name="text">
+    <string>About qt...</string>
+   </property>
+  </action>
+  <action name="actionAboutGPLv3">
+   <property name="text">
+    <string>About GPLv3...</string>
+   </property>
+  </action>
+  <action name="actionExportCSV">
+   <property name="text">
+    <string>Export CSV</string>
+   </property>
+  </action>
+  <action name="actionClearCompleted">
+   <property name="text">
+    <string>Clear Completed</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="bgFilter"/>
   <buttongroup name="bgSort"/>
+  <buttongroup name="bgFilter"/>
  </buttongroups>
 </ui>
